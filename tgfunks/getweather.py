@@ -1,6 +1,6 @@
 from telegram.ext import ConversationHandler, CommandHandler, MessageHandler
 from telegram.ext import Filters
-from funks.functions import get_ll
+from funks.functions import get_ll, get_address_from_ll
 from tgfunks.basefunks import stop, STOP_KEYBOARD
 import requests
 import pymorphy2
@@ -25,7 +25,8 @@ def ask_city(update, context):
         ll = get_ll(geocode).split(',')
     else:
         update.message.reply_text("По вашему запросу ничего не нашлось...")
-        return ConversationHandler.END
+        update.message.reply_text("Введите команду /stop или город.")
+        return ASKCITY
     url_yandex = f'https://api.weather.yandex.ru/v2/forecast/?lat={ll[1]}&lon={ll[0]}&[lang=ru_RU]'
     response = requests.get(url_yandex, headers={'X-Yandex-API-Key': WEATHER_APIKEY}, verify=False)
     conditions = {'clear': 'ясно', 'partly-cloudy': 'малооблачно', 'cloudy': 'облачно с прояснениями',
@@ -44,9 +45,17 @@ def ask_city(update, context):
         th = ', гроза'
     else:
         th = ''
-
+    try:
+        address = get_address_from_ll(get_ll(geocode)).split(', ')
+        address = ", ".join(address[:-2])
+    except IndexError:
+        update.message.reply_text("Введенное не является городом или населенным пунктом.")
+        update.message.reply_text("Введите команду /stop или город.")
+        return ASKCITY
     w = f"""
-    Погода в выбранном месте:
+    Погода по адресу:
+    
+  {address}
     
     •   {conditions[fact_dict['condition']].capitalize()}{th}
     

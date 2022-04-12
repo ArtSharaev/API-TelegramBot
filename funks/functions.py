@@ -19,3 +19,17 @@ def get_ll(geocode):
     toponym_longitude, toponym_lattitude = toponym_coodrinates.split(" ")
     ll = ",".join([toponym_longitude, toponym_lattitude])
     return ll
+
+
+def get_address_from_ll(ll):
+    PARAMS = {
+        "apikey": MAPS_APIKEY,
+        "format": "json",
+        "lang": "ru_RU",
+        "kind": "house",
+        "geocode": ll
+    }
+    response = requests.get(url="https://geocode-maps.yandex.ru/1.x/", params=PARAMS)
+    json_data = response.json()
+    address_str = json_data["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]["AddressDetails"]["Country"]["AddressLine"]
+    return address_str

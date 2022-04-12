@@ -1,7 +1,11 @@
 from telegram.ext import ConversationHandler, CommandHandler, MessageHandler
 from telegram.ext import Filters
 from funks.functions import get_ll
-from tgfunks.basefunks import stop, STOP_KEYBOARD
+from tgfunks.basefunks import stop, STOP_KEYBOARD, BASE_KEYBOARD
+
+
+class InvalidZoom(Exception):
+    pass
 
 
 ASKZOOM, ASKPLACE = range(2)
@@ -18,8 +22,11 @@ def ask_place(update, context):
     if plc.strip() == '/stop':
         stop(update, context)
     else:
+        if not get_ll(plc):
+            update.message.reply_text("По вашему запросу ничего не нашлось...")
+            update.message.reply_text("Введите команду /stop или искомый адрес.")
+            return ASKPLACE
         context.user_data['place'] = plc
-
     update.message.reply_text("Задайте параметр приближения " +
                               "(целое цисло от 2 до 21).")
     return ASKZOOM
@@ -31,22 +38,19 @@ def ask_zoom(update, context):
     try:
         zoom = int(update.message.text.strip())
         if zoom < 2 or zoom > 21:
-            raise ValueError
-    except ValueError:
-        update.message.reply_text("Задача остановлена.")
-        return ConversationHandler.END
-    if get_ll(geocode):
-        ll = get_ll(geocode)
-    else:
-        update.message.reply_text("По вашему запросу ничего не нашлось...")
-        return ConversationHandler.END
+            raise InvalidZoom
+    except InvalidZoom as e:
+        update.message.reply_text("Ошибка: InvalidZoom")
+        update.message.reply_text("Введите команду /stop или искомый адрес.")
+        return ASKPLACE
+    ll = get_ll(geocode)
     request = f"http://static-maps.yandex.ru/1.x/?ll={ll}&z={zoom}&l=map"
     update.message.reply_text("Найдено!")
     context.bot.send_photo(
         update.message.chat_id,
         request
     )
-    update.message.reply_text("Введите команду /stop или снова искомый адрес.")
+    update.message.reply_text("Введите команду /stop искомый адрес.")
     return ASKPLACE
 
 
