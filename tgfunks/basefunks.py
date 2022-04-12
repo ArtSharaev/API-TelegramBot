@@ -3,7 +3,7 @@ from telegram import ReplyKeyboardMarkup
 
 
 BASE_KEYBOARD = ReplyKeyboardMarkup([['/getmap', '/getweather'],
-                                     ['/help', '/stop']],
+                                     ['/help']],
                                     one_time_keyboard=False)
 STOP_KEYBOARD = ReplyKeyboardMarkup([['/stop']],
                                     one_time_keyboard=False)
@@ -26,6 +26,7 @@ def bot_help(update, context):
 
 
 def stop(update, context):
-    update.message.reply_text("Задача остановлена.")
+    update.message.reply_text("Задача остановлена.",
+                              reply_markup=BASE_KEYBOARD)
     context.user_data.clear()
     return ConversationHandler.END

@@ -1,7 +1,7 @@
 from telegram.ext import ConversationHandler, CommandHandler, MessageHandler
 from telegram.ext import Filters
 from funks.functions import get_ll
-from tgfunks.basefunks import stop
+from tgfunks.basefunks import stop, STOP_KEYBOARD
 import requests
 import pymorphy2
 
@@ -11,16 +11,20 @@ WEATHER_APIKEY = ""
 
 
 def getweather(update, context):
-    update.message.reply_text('Для какого города вы хотите узнать погоду?')
+    update.message.reply_text('Для какого города вы хотите узнать погоду?',
+                              reply_markup=STOP_KEYBOARD)
     return ASKCITY
 
 
 def ask_city(update, context):
     geocode = update.message.text
+    if geocode.strip() == '/stop':
+        stop(update, context)
+    geocode = update.message.text
     if get_ll(geocode):
         ll = get_ll(geocode).split(',')
     else:
-        update.message.reply_text("Ошибка. Операция остановлена.")
+        update.message.reply_text("По вашему запросу ничего не нашлось...")
         return ConversationHandler.END
     url_yandex = f'https://api.weather.yandex.ru/v2/forecast/?lat={ll[1]}&lon={ll[0]}&[lang=ru_RU]'
     response = requests.get(url_yandex, headers={'X-Yandex-API-Key': WEATHER_APIKEY}, verify=False)
@@ -33,7 +37,7 @@ def ask_city(update, context):
                   'thunderstorm-with-rain': 'дождь с грозой', 'thunderstorm-with-hail': 'гроза с градом'
                   }
     wind_dir = {'nw': 'северо-западное', 'n': 'северное', 'ne': 'северо-восточное', 'e': 'восточное',
-                'se': 'юго-восточное', 's': 'южное', 'sw': 'юго-западное', 'w': 'западное', 'с': 'штиль'}
+                'se': 'юго-восточное', 's': 'южное', 'sw': 'юго-западное', 'w': 'западное', 'c': 'штиль'}
     yandex_json = response.json()
     fact_dict = yandex_json['fact']
     if fact_dict['is_thunder']:
@@ -55,13 +59,14 @@ def ask_city(update, context):
     •   Влажность {str(fact_dict['humidity'])}%
     """
     update.message.reply_text(w)
-    return ConversationHandler.END
+    update.message.reply_text("Введите команду /stop или город.")
+    return ASKCITY
 
 
 weather_conv_handler = ConversationHandler(
     entry_points=[CommandHandler("getweather", getweather)],
     states={
-        ASKCITY: [MessageHandler(Filters.text, ask_city)]
+        ASKCITY: [MessageHandler(Filters.text & ~Filters.command, ask_city)]
     },
     fallbacks=[CommandHandler('stop', stop)]
 )
